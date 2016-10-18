@@ -18,12 +18,13 @@
    * @see Drupal.commerceBraintree
    */
   Drupal.behaviors.commerceBraintreeForm = {
-    attach: function (context) {
+    attach: function (context, settings) {
       var $form = $('.braintree-form', context).closest('form');
       if ($form.length > 0) {
         var braintree = $form.data('braintree');
         if (!braintree) {
           braintree = new Drupal.commerceBraintree($form, drupalSettings.commerceBraintree);
+          braintree.bootstrap();
           $form.data('braintree', braintree);
         }
       }
@@ -33,7 +34,7 @@
       if ($form.length > 0) {
         var braintree = $form.data('braintree');
         if (braintree) {
-          braintree.integration.teardown();
+          //braintree.integration.teardown();
           $form.removeData('braintree');
         }
       }
@@ -56,21 +57,55 @@
       $(this).find('.messages--error').remove()
     });
 
-    braintree.setup(settings.clientToken, 'custom', {
-      id: this.formId,
-      hostedFields: settings.hostedFields,
-      onReady: $.proxy(this.onReady, this),
-      onError: $.proxy(this.onError, this),
-      onPaymentMethodReceived: function (payload) {
-        $('.braintree-nonce', $form).val(payload.nonce);
-        $('.braintree-card-type', $form).val(payload.details.cardType);
-        $('.braintree-last2', $form).val(payload.details.lastTwo);
-        $form.submit();
-      }
-    });
-
     return this;
   };
+
+  Drupal.commerceBraintree.prototype.bootstrap = function () {
+
+    var options = this.getOptions(this.settings.integration);
+
+    braintree.setup(this.settings.clientToken, this.settings.integration, options);
+
+  }
+
+
+  Drupal.commerceBraintree.prototype.getOptions = function(integration) {
+    var self = this;
+
+    var options = {
+      onError: $.proxy(this.onError, this),
+    }
+
+    var getCustomOptions = function() {
+      options.id = self.formId;
+      options.hostedFields = {};
+      options.hostedFields = $.extend(options.hostedFields, self.settings.hostedFields);
+      options.onReady = $.proxy(self.onReady, self);
+      options.onPaymentMethodReceived = function (payload) {
+         $('.braintree-nonce', self.$form).val(payload.nonce);
+         $('.braintree-card-type', self.$form).val(payload.details.cardType);
+         $('.braintree-last2', self.$form).val(payload.details.lastTwo);
+         self.$form.submit();
+       }
+
+      return options;
+    }
+
+    var getPayPalOptions = function() {
+      options.container = self.settings.paypalContainer;
+      return options;
+    }
+
+   if (integration == 'paypal') {
+      options = getPayPalOptions();
+    }
+    else {
+      options = getCustomOptions();
+    }
+
+    return options;
+
+  }
 
   Drupal.commerceBraintree.prototype.onReady = function (integration) {
     this.integration = integration;

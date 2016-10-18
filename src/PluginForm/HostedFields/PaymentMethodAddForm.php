@@ -7,6 +7,35 @@ use Drupal\Core\Form\FormStateInterface;
 
 class PaymentMethodAddForm extends BasePaymentMethodAddForm {
 
+  public function buildPayPalForm(array $element, FormStateInterface $form_state) {
+    /** @var \Drupal\commerce_braintree\Plugin\Commerce\PaymentGateway\HostedFieldsInterface $plugin */
+    $plugin = $this->plugin;
+
+    $element['#attached']['library'][] = 'commerce_braintree/form';
+    $element['#attached']['drupalSettings']['commerceBraintree'] = [
+      'clientToken' => $plugin->generateClientToken(),
+      'integration' => 'paypal',
+      'paypalContainer' => 'paypal-container'
+    ];
+    $element['#attributes']['class'][] = 'braintree-form';
+    // Populated by the JS library.
+
+    $element['paypal_container'] = array(
+      '#type' => 'container',
+      '#id' => 'paypal-container',
+    );
+
+    $element['payment_method_nonce'] = [
+      '#type' => 'hidden',
+      '#attributes' => [
+        'class' => ['braintree-nonce'],
+      ],
+    ];
+
+    return $element;
+  }
+
+
   /**
    * {@inheritdoc}
    */
@@ -17,6 +46,7 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
     $element['#attached']['library'][] = 'commerce_braintree/form';
     $element['#attached']['drupalSettings']['commerceBraintree'] = [
       'clientToken' => $plugin->generateClientToken(),
+      'integration' => "custom",
       'hostedFields' => [
         'number' => ['selector' => '#card-number'],
         'cvv' => ['selector' => '#cvv'],
