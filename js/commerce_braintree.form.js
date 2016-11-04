@@ -34,7 +34,7 @@
       if ($form.length > 0) {
         var braintree = $form.data('braintree');
         if (braintree) {
-          //braintree.integration.teardown();
+          braintree.integration.teardown();
           $form.removeData('braintree');
         }
       }
@@ -50,8 +50,9 @@
     this.settings = settings;
     this.$form = $form;
     this.formId = this.$form.attr('id');
+    this.$submit = this.$form.find('[data-drupal-selector="edit-actions-next"]');
 
-    this.$form.find('#edit-submit').prop('disabled', false);
+    //this.$form.find('#edit-submit').prop('disabled', false);
 
     this.$form.bind('submit', function (e) {
       $(this).find('.messages--error').remove()
@@ -65,9 +66,15 @@
     var options = this.getOptions(this.settings.integration);
 
     braintree.setup(this.settings.clientToken, this.settings.integration, options);
+    if (this.settings.integration == 'paypal') {
+      this.bootstrapPaypal();
+    }
 
   }
 
+   Drupal.commerceBraintree.prototype.bootstrapPaypal = function() {
+    this.$submit.attr('disabled', 'disabled');
+   }
 
   Drupal.commerceBraintree.prototype.getOptions = function(integration) {
     var self = this;
@@ -93,6 +100,11 @@
 
     var getPayPalOptions = function() {
       options.container = self.settings.paypalContainer;
+      options.onReady = $.proxy(self.onReady, self);
+      options.onPaymentMethodReceived = function (payload) {
+          $('.braintree-nonce', self.$form).val(payload.nonce);
+          self.$submit.removeAttr('disabled');
+      }
       return options;
     }
 

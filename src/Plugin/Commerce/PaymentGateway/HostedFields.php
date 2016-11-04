@@ -285,9 +285,19 @@ class HostedFields extends OnsitePaymentGatewayBase implements HostedFieldsInter
    * {@inheritdoc}
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
-    $required_keys = [
-      'payment_method_nonce', 'card_type', 'last2',
-    ];
+
+    $payment_type = $payment_method->getType()->getPluginId();
+
+    if ($payment_type == "paypal") {
+      $required_keys = [
+        'payment_method_nonce'
+      ];
+    } else {
+      $required_keys = [
+        'payment_method_nonce', 'card_type', 'last2',
+      ];
+    }
+
     foreach ($required_keys as $required_key) {
       if (empty($payment_details[$required_key])) {
         throw new \InvalidArgumentException(sprintf('$payment_details must contain the %s key.', $required_key));
@@ -305,13 +315,20 @@ class HostedFields extends OnsitePaymentGatewayBase implements HostedFieldsInter
     }
     else {
       $remote_payment_method = $this->doCreatePaymentMethod($payment_method, $payment_details);
-      $payment_method->card_type = $this->mapCreditCardType($remote_payment_method['card_type']);
-      $payment_method->card_number = $remote_payment_method['last4'];
-      $payment_method->card_exp_month = $remote_payment_method['expiration_month'];
-      $payment_method->card_exp_year = $remote_payment_method['expiration_year'];
 
       $remote_id = $remote_payment_method['token'];
-      $expires = CreditCard::calculateExpirationTimestamp($remote_payment_method['expiration_month'], $remote_payment_method['expiration_year']);
+
+      if ($payment_type == "paypal") {
+        $payment_method->paypal_mail = $remote_payment_method['email'];
+        $expires = REQUEST_TIME + (3600 * 3) - 5;
+      } else {
+        $payment_method->card_type = $this->mapCreditCardType($remote_payment_method['card_type']);
+        $payment_method->card_number = $remote_payment_method['last4'];
+        $payment_method->card_exp_month = $remote_payment_method['expiration_month'];
+        $payment_method->card_exp_year = $remote_payment_method['expiration_year'];
+        $expires = CreditCard::calculateExpirationTimestamp($remote_payment_method['expiration_month'], $remote_payment_method['expiration_year']);
+      }
+
     }
 
     $payment_method->setRemoteId($remote_id);
@@ -335,8 +352,12 @@ class HostedFields extends OnsitePaymentGatewayBase implements HostedFieldsInter
    *   - last4: The last 4 digits of the credit card number.
    *   - expiration_month: The expiration month.
    *   - expiration_year: The expiration year.
+   *   PayPal specific keys:
+   *   - email: The PayPal email address
    */
   protected function doCreatePaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
+    $payment_type = $payment_method->getType()->getPluginId();
+
     $owner = $payment_method->getOwner();
     /** @var \Drupal\address\AddressInterface $address */
     $address = $payment_method->getBillingProfile()->address->first();
@@ -404,13 +425,20 @@ class HostedFields extends OnsitePaymentGatewayBase implements HostedFieldsInter
       }
     }
 
-    return [
-      'token' => $remote_payment_method->token,
-      'card_type' => $remote_payment_method->cardType,
-      'last4' => $remote_payment_method->last4,
-      'expiration_month' => $remote_payment_method->expirationMonth,
-      'expiration_year' => $remote_payment_method->expirationYear,
-    ];
+    if ($payment_type == "paypal") {
+      return [
+        'token' => $remote_payment_method->token,
+        'email' => $remote_payment_method->email,
+      ];
+    } else {
+      return [
+        'token' => $remote_payment_method->token,
+        'card_type' => $remote_payment_method->cardType,
+        'last4' => $remote_payment_method->last4,
+        'expiration_month' => $remote_payment_method->expirationMonth,
+        'expiration_year' => $remote_payment_method->expirationYear,
+      ];
+    }
   }
 
   /**

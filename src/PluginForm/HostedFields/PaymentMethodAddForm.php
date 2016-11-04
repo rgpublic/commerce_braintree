@@ -125,4 +125,11 @@ class PaymentMethodAddForm extends BasePaymentMethodAddForm {
     // The payment gateway plugin will process the submitted payment details.
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function submitPayPalForm(array $element, FormStateInterface $form_state) {
+    // The payment gateway plugin will process the submitted payment details.
+  }
+
 }

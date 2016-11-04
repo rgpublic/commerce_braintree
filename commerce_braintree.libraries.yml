@@ -6,7 +6,7 @@ braintree:
     url: https://github.com/braintree/braintree-web/blob/2.25.0/LICENSE
     gpl-compatible: true
   js:
-    "//js.braintreegateway.com/js/braintree-2.25.0.min.js": { minified: true }
+    "https://js.braintreegateway.com/js/braintree-2.25.0.min.js": { minified: true }
 
 form:
   version: VERSION
