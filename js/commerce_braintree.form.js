@@ -34,7 +34,7 @@
       if ($form.length > 0) {
         var braintree = $form.data('braintree');
         if (braintree) {
-          braintree.integration.teardown();
+          if (typeof braintree.integration!="undefined") braintree.integration.teardown();
           $form.removeData('braintree');
         }
       }
