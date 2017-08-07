@@ -64,6 +64,7 @@
   Drupal.commerceBraintree.prototype.bootstrap = function () {
 
     var options = this.getOptions(this.settings.integration);
+    this.$submit.removeAttr('disabled');
 
     braintree.setup(this.settings.clientToken, this.settings.integration, options);
     if (this.settings.integration == 'paypal') {
