@@ -29,7 +29,10 @@
         }
       }
     },
-    detach: function (context) {
+    detach: function (context, settings, trigger) {
+      if (trigger !== 'unload') {
+        return;
+      }
       var $form = $('.braintree-form', context).closest('form');
       if ($form.length > 0) {
         var braintree = $form.data('braintree');
